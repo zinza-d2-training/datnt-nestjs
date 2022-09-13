@@ -21,9 +21,11 @@ export class User {
   })
   emailAddress: string;
 
-  @Column({
-    nullable: false,
-    default: '',
-  })
+  @Column()
   password: string;
+
+  @Column({
+    name: 'confirm_password',
+  })
+  confirmPassword: string;
 }

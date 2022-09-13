@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CreateUserParams, UpdateUserParams } from '../../utils/types';
 import { Repository } from 'typeorm';
 import { User } from '../../../typeorm/User';
 @Injectable()
@@ -11,16 +12,26 @@ export class UsersService {
   fetchAllUser(): Promise<User[]> {
     return this.usersRepository.find();
   }
-  createUser() {
-    return 'created user';
+
+  async createUser(user: CreateUserParams) {
+    const newUser = this.usersRepository.create(user);
+    return await this.usersRepository.save(newUser);
   }
-  fetchUserById() {
-    return 'user 1';
+
+  async fetchUserById(id: number) {
+    return await this.usersRepository.findOneBy({ id });
   }
-  updateUser() {
-    return 'updated user';
+
+  updateUserDb(id: number, user: UpdateUserParams) {
+    const response = this.usersRepository.update({ id }, user);
+    return response;
   }
-  deleteUser() {
-    return 'deleted user';
+  async deleteUser(id) {
+    const user = await this.usersRepository.findOneBy({ id });
+    if (!user)
+      throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
+
+    await this.usersRepository.delete(user);
+    return { message: 'deleted user' };
   }
 }
