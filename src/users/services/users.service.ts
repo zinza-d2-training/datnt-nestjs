@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateUserParams, UpdateUserParams } from '../../utils/types';
+import { CreateUserParams, UpdateUserParams } from '../utils/types';
 import { Repository } from 'typeorm';
-import { User } from '../../../typeorm/User';
+import { User } from '../../typeorm/User';
 @Injectable()
 export class UsersService {
   constructor(
@@ -26,7 +26,8 @@ export class UsersService {
     const response = this.usersRepository.update({ id }, user);
     return response;
   }
-  async deleteUser(id) {
+
+  async removeUser(id) {
     const user = await this.usersRepository.findOneBy({ id });
     if (!user)
       throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);

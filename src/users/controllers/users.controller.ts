@@ -13,19 +13,19 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { User } from 'src/typeorm';
-import { UsersService } from '../../services/users/users.service';
-import { CreateUserDto, UpdateUserDto } from './../../dtos';
+import { CreateUserDto, UpdateUserDto } from '../dtos';
+import { UsersService } from '../services/users.service';
 @Controller('user')
 export class UsersController {
   constructor(private userService: UsersService) {}
 
   @Get('/get-all')
-  getAllUser(): Promise<User[]> {
+  getAll(): Promise<User[]> {
     return this.userService.fetchAllUser();
   }
 
   @Get(':id')
-  async getUserById(@Param('id', ParseIntPipe) id: number) {
+  async getById(@Param('id', ParseIntPipe) id: number) {
     const user = await this.userService.fetchUserById(id);
     if (!user)
       throw new HttpException('user not found', HttpStatus.BAD_REQUEST);
@@ -34,13 +34,13 @@ export class UsersController {
 
   @Post('create')
   @UsePipes(new ValidationPipe())
-  async createUser(@Body() user: CreateUserDto) {
+  async create(@Body() user: CreateUserDto) {
     return await this.userService.createUser(user);
   }
 
   @Patch('/update/:id')
   @UsePipes(new ValidationPipe())
-  updateUser(
+  update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUser: UpdateUserDto,
   ) {
@@ -48,7 +48,7 @@ export class UsersController {
   }
 
   @Delete('/delete/:id')
-  removeUser(@Param('id', ParseIntPipe) id: number) {
-    return this.userService.deleteUser(id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.removeUser(id);
   }
 }

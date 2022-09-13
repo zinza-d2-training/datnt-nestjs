@@ -1,15 +1,9 @@
-import {
-  Logger,
-  MiddlewareConsumer,
-  Module,
-  RequestMethod,
-} from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../typeorm/User';
-import { UsersController } from './controllers/users/users.controller';
-import { AnotherMiddleware } from './middlewares/another.middleware';
-import { LoggerMiddleware } from './middlewares/logger.middleware';
-import { UsersService } from './services/users/users.service';
+import { UsersController } from './controllers/users.controller';
+import { ValidatorUserMiddleware } from './middlewares/validator-user.middleware';
+import { UsersService } from './services/users.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
@@ -18,6 +12,6 @@ import { UsersService } from './services/users/users.service';
 })
 export class UsersModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AnotherMiddleware, LoggerMiddleware).forRoutes('user');
+    consumer.apply(ValidatorUserMiddleware).forRoutes('user/create');
   }
 }
