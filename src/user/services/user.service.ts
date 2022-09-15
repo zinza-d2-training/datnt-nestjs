@@ -1,3 +1,4 @@
+import { hashPassword, comparePassword } from './../../utils/bcrypt';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateUserParams, UpdateUserParams } from '../utils/types';
@@ -9,20 +10,24 @@ export class UsersService {
     @InjectRepository(User) private usersRepository: Repository<User>,
   ) {}
 
-  fetchAllUser(): Promise<User[]> {
+  getUsers() {
     return this.usersRepository.find();
   }
 
   async createUser(user: CreateUserParams) {
-    const newUser = this.usersRepository.create(user);
-    return await this.usersRepository.save(newUser);
+    const password = await hashPassword(user.password);
+    const newUser = this.usersRepository.create({
+      ...user,
+      password,
+    });
+    return this.usersRepository.save(newUser);
   }
 
-  async fetchUserById(id: number) {
-    return await this.usersRepository.findOneBy({ id });
+  getUserById(id: number) {
+    return this.usersRepository.findOneBy({ id });
   }
 
-  updateUserDb(id: number, user: UpdateUserParams) {
+  updateUser(id: number, user: UpdateUserParams) {
     const response = this.usersRepository.update({ id }, user);
     return response;
   }
@@ -34,5 +39,9 @@ export class UsersService {
 
     await this.usersRepository.delete(user);
     return { message: 'deleted user' };
+  }
+
+  getUserByName(username: string) {
+    return this.usersRepository.findOneBy({ username });
   }
 }

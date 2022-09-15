@@ -23,9 +23,4 @@ export class User {
 
   @Column()
   password: string;
-
-  @Column({
-    name: 'confirm_password',
-  })
-  confirmPassword: string;
 }
