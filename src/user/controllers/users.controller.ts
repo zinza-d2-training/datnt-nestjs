@@ -12,7 +12,6 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { User } from 'src/typeorm';
 import { CreateUserDto, UpdateUserDto } from '../dtos';
 import { UsersService } from '../services/user.service';
 @Controller('user')
