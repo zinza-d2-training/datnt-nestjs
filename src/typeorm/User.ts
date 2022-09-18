@@ -26,4 +26,10 @@ export class User {
     default: '',
   })
   password: string;
+
+  @Column({
+    default: '',
+    name: 'refresh_token',
+  })
+  refreshToken: string;
 }
