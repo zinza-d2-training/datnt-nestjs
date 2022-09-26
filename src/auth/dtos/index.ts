@@ -1,5 +1,6 @@
 import { Exclude } from 'class-transformer';
 import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+import { IsMatch } from '../../common/decorator/match.decorator';
 
 export class UserSignup {
   @IsNotEmpty()
@@ -13,8 +14,7 @@ export class UserSignup {
   @MinLength(6)
   password: string;
 
-  @IsNotEmpty()
-  @MinLength(6)
+  @IsMatch('password')
   confirmPassword: string;
 }
 

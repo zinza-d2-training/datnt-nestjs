@@ -1,7 +1,13 @@
 import { UserSerialization } from './dtos/index';
 import { JwtService } from '@nestjs/jwt';
 import { comparePassword, hashPassword } from './../utils/bcrypt';
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  HttpException,
+  UnauthorizedException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../typeorm/index';
 import { Repository } from 'typeorm';
@@ -33,6 +39,15 @@ export class AuthService {
   }
 
   async signup(payload: UserSignup) {
+    const userExist = await this.userRepository.findOneBy({
+      emailAddress: payload.emailAddress,
+    });
+    if (userExist)
+      throw new HttpException(
+        'Email already with another user',
+        HttpStatus.BAD_REQUEST,
+      );
+
     const password = await hashPassword(payload.password);
     const userInstance = this.userRepository.create({
       ...payload,
@@ -50,8 +65,27 @@ export class AuthService {
     };
   }
 
-  logout(userId) {
-    this.userRepository.update({ id: userId }, { refreshToken: '' });
+  async logout(userId) {
+    await this.userRepository.update({ id: userId }, { refreshToken: '' });
+  }
+
+  async refreshToken(userId, rfToken) {
+    if (!userId) throw new ForbiddenException('Access denied');
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new ForbiddenException('Access denied');
+    if (user.refreshToken !== rfToken)
+      throw new UnauthorizedException('Refresh token invalid!');
+    const { accessToken, refreshToken } = await this.getTokens(
+      userId,
+      user.emailAddress,
+    );
+
+    await this.updateRefreshToken(userId, refreshToken);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
   async getTokens(userId, email): Promise<Tokens> {

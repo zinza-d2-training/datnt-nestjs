@@ -12,7 +12,7 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'jwt_at') {
     });
   }
 
-  async validate(payload: DecodedDataJwt) {
+  validate(payload: DecodedDataJwt) {
     return { userId: payload.sub, email: payload.email };
   }
 }

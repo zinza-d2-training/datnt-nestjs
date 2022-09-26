@@ -1,17 +1,22 @@
+import { RefreshTokenGuard } from './../common/guards/rt.guard';
+import { AccessTokenGuard } from './../common/guards/at.guard';
 import {
   Body,
   ClassSerializerInterceptor,
   Controller,
+  Get,
+  HttpStatus,
   Post,
   Req,
+  Res,
   UseGuards,
   UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { UserSignin, UserSignup } from './dtos';
+import { GetUserBy } from '../common/decorator/get-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -29,10 +34,27 @@ export class AuthController {
     return this.authService.signup(payload);
   }
 
-  @UseGuards(AuthGuard('jwt_at'))
+  @UseGuards(AccessTokenGuard)
   @Post('logout')
-  logout(@Req() req: Request) {
-    const user = req.user;
-    return this.authService.logout(user['userId']);
+  async logout(@GetUserBy('userId') userId: string, @Res() res: Response) {
+    await this.authService.logout(userId);
+    res
+      .status(HttpStatus.OK)
+      .json({ message: 'logout success!', status: HttpStatus.OK });
+  }
+
+  @UseGuards(RefreshTokenGuard)
+  @Post('refresh-token')
+  refreshToken(
+    @GetUserBy('userId') userId: string,
+    @GetUserBy('rfToken') rfToken: string,
+  ) {
+    return this.authService.refreshToken(userId, rfToken);
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Get('profile')
+  getProfile() {
+    console.log('profile user');
   }
 }
