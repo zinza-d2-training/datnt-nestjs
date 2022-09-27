@@ -1,6 +1,6 @@
 import { UserSerialization } from './dtos/index';
 import { JwtService } from '@nestjs/jwt';
-import { comparePassword, hashPassword } from './../utils/bcrypt';
+import { compareHash, hash } from './../utils/bcrypt';
 import {
   ForbiddenException,
   Injectable,
@@ -12,19 +12,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../typeorm/index';
 import { Repository } from 'typeorm';
 import { UserSignup, UserSignin, Tokens } from './types';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   async signin(payload: UserSignin) {
     const { emailAddress, password } = payload;
     const user = await this.userRepository.findOneBy({ emailAddress });
     if (!user) throw new ForbiddenException('Access denied');
-    const isMatchPassword = comparePassword(password, user.password);
+    const isMatchPassword = await compareHash(password, user.password);
     if (!isMatchPassword) throw new ForbiddenException('Access denied');
 
     const tokens: Tokens = await this.getTokens(user.id, user.emailAddress);
@@ -48,20 +50,22 @@ export class AuthService {
         HttpStatus.BAD_REQUEST,
       );
 
-    const password = await hashPassword(payload.password);
+    const password = await hash(payload.password);
     const userInstance = this.userRepository.create({
       ...payload,
       password,
     });
+
     const user = await this.userRepository.save(userInstance);
-    const tokens: Tokens = await this.getTokens(user.id, user.emailAddress);
-    const { accessToken, refreshToken } = tokens;
-    await this.updateRefreshToken(user.id, refreshToken);
+    const emailHash = await hash(user.emailAddress);
+    await this.mailService.sendUserConfirmation(user, emailHash);
+
+    // const tokens: Tokens = await this.getTokens(user.id, user.emailAddress);
+    // const { accessToken, refreshToken } = tokens;
+    // await this.updateRefreshToken(user.id, refreshToken);
 
     return {
-      user: new UserSerialization(user),
-      accessToken,
-      refreshToken,
+      message: 'An email sent to your account please verify',
     };
   }
 
@@ -86,6 +90,17 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async confirm(email: string, token: string) {
+    const user = await this.userRepository.findOneBy({ emailAddress: email });
+    if (!user)
+      throw new HttpException('Verify url invalid', HttpStatus.BAD_REQUEST);
+    const isMatch = compareHash(email, token);
+    if (!isMatch)
+      throw new HttpException('Verify url invalid', HttpStatus.BAD_REQUEST);
+
+    return 'verify success';
   }
 
   async getTokens(userId, email): Promise<Tokens> {

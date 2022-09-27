@@ -7,6 +7,7 @@ import {
   Get,
   HttpStatus,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -56,5 +57,10 @@ export class AuthController {
   @Get('profile')
   getProfile() {
     console.log('profile user');
+  }
+
+  @Get('confirm')
+  confirm(@Query('email') email: string, @Query('token') token: string) {
+    return this.authService.confirm(email, token);
   }
 }

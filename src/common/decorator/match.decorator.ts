@@ -11,7 +11,6 @@ export function IsMatch(
   validationOptions?: ValidationOptions,
 ) {
   return (object: any, propertyName: string) => {
-    console.log({ property, propertyName });
     registerDecorator({
       target: object.constructor,
       propertyName,
@@ -26,7 +25,6 @@ export function IsMatch(
 export class MatchConstraint implements ValidatorConstraintInterface {
   validate(value: any, args?: ValidationArguments): boolean | Promise<boolean> {
     const [relatedPropertyName] = args.constraints;
-    console.log('relatedPropertyName', relatedPropertyName);
     const relatedValue = (args.object as any)[relatedPropertyName];
     return value === relatedValue;
   }
