@@ -1,5 +1,5 @@
 import { RefreshTokenGuard } from './../common/guards/rt.guard';
-import { AccessTokenGuard } from './../common/guards/at.guard';
+import { AccessTokenGuard } from 'src/common/guards/at.guard';
 import {
   Body,
   ClassSerializerInterceptor,
@@ -16,7 +16,12 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { UserSignin, UserSignup } from './dtos';
+import {
+  UserForgotPassword,
+  UserResetPassword,
+  UserSignin,
+  UserSignup,
+} from './dtos';
 import { GetUserBy } from '../common/decorator/get-user.decorator';
 
 @Controller('auth')
@@ -62,5 +67,25 @@ export class AuthController {
   @Get('confirm')
   confirm(@Query('email') email: string, @Query('token') token: string) {
     return this.authService.confirm(email, token);
+  }
+
+  @Get('confirm/reset-password')
+  confirmResetPassword(
+    @Query('email') email: string,
+    @Query('token') token: string,
+  ) {
+    return this.authService.confirmResetPassword(email, token);
+  }
+
+  @Post('forgot-password')
+  forgotPassword(
+    @Body(new ValidationPipe()) { emailAddress }: UserForgotPassword,
+  ) {
+    return this.authService.forgotPassword(emailAddress);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body(new ValidationPipe()) payload: UserResetPassword) {
+    return this.authService.resetPassword(payload);
   }
 }

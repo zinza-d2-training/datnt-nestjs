@@ -10,14 +10,13 @@ import { Injectable } from '@nestjs/common';
 export class MailService {
   constructor(private mailerService: MailerService) {}
 
-  async sendUserConfirmation(user: any, token: string) {
+  async sendUserConfirmation(user: any, url: string, pathTemplate: string) {
     const { username, emailAddress } = user;
-    const url = `${process.env.APP_URL}/auth/confirm?email=${emailAddress}&token=${token}`;
 
     await this.mailerService.sendMail({
       to: emailAddress,
       subject: 'Welcome to Nice App! Confirm your Email',
-      template: './confirmation',
+      template: `./${pathTemplate}`,
       context: {
         name: username,
         url,

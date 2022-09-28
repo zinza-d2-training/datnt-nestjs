@@ -28,6 +28,25 @@ export class UserSignin {
   password: string;
 }
 
+export class UserForgotPassword {
+  @IsEmail()
+  @IsNotEmpty()
+  emailAddress: string;
+}
+export class UserResetPassword {
+  @IsEmail()
+  @IsNotEmpty()
+  emailAddress: string;
+
+  @IsNotEmpty()
+  @MinLength(6)
+  newPassword: string;
+
+  @IsMatch('newPassword')
+  @IsNotEmpty()
+  confirmNewPassword: string;
+}
+
 export class UserSerialization {
   id: number;
   username: string;
@@ -37,6 +56,15 @@ export class UserSerialization {
 
   @Exclude()
   refreshToken: string;
+
+  @Exclude()
+  verifyAt: Date;
+
+  @Exclude()
+  createdAt: Date;
+
+  @Exclude()
+  updatedAt: Date;
 
   constructor(partial: Partial<UserSerialization>) {
     Object.assign(this, partial);

@@ -1,4 +1,4 @@
-import { UserSerialization } from './dtos/index';
+import { UserResetPassword, UserSerialization } from './dtos/index';
 import { JwtService } from '@nestjs/jwt';
 import { compareHash, hash } from './../utils/bcrypt';
 import {
@@ -13,6 +13,10 @@ import { User } from '../typeorm/index';
 import { Repository } from 'typeorm';
 import { UserSignup, UserSignin, Tokens } from './types';
 import { MailService } from '../mail/mail.service';
+import {
+  getConfirmUrlUserResetPassword,
+  getConfirmUrlUserSignup,
+} from './../utils/get-confirm-url';
 
 @Injectable()
 export class AuthService {
@@ -25,9 +29,26 @@ export class AuthService {
   async signin(payload: UserSignin) {
     const { emailAddress, password } = payload;
     const user = await this.userRepository.findOneBy({ emailAddress });
-    if (!user) throw new ForbiddenException('Access denied');
+    if (!user)
+      throw new HttpException(
+        'The email or password are incorrect',
+        HttpStatus.BAD_REQUEST,
+      );
     const isMatchPassword = await compareHash(password, user.password);
-    if (!isMatchPassword) throw new ForbiddenException('Access denied');
+    if (!isMatchPassword)
+      throw new HttpException(
+        'The email or password are incorrect',
+        HttpStatus.BAD_REQUEST,
+      );
+    if (!user.verifyAt) {
+      const emailHash = await hash(user.emailAddress);
+      const url = getConfirmUrlUserSignup(user.emailAddress, emailHash);
+      await this.mailService.sendUserConfirmation(user, url, 'confirmation');
+      return {
+        status: 202,
+        message: 'An email sent to your account please verify',
+      };
+    }
 
     const tokens: Tokens = await this.getTokens(user.id, user.emailAddress);
     const { accessToken, refreshToken } = tokens;
@@ -58,13 +79,11 @@ export class AuthService {
 
     const user = await this.userRepository.save(userInstance);
     const emailHash = await hash(user.emailAddress);
-    await this.mailService.sendUserConfirmation(user, emailHash);
-
-    // const tokens: Tokens = await this.getTokens(user.id, user.emailAddress);
-    // const { accessToken, refreshToken } = tokens;
-    // await this.updateRefreshToken(user.id, refreshToken);
+    const url = getConfirmUrlUserSignup(user.emailAddress, emailHash);
+    await this.mailService.sendUserConfirmation(user, url, 'confirmation');
 
     return {
+      status: 202,
       message: 'An email sent to your account please verify',
     };
   }
@@ -92,15 +111,64 @@ export class AuthService {
     };
   }
 
-  async confirm(email: string, token: string) {
+  async forgotPassword(email: string) {
     const user = await this.userRepository.findOneBy({ emailAddress: email });
     if (!user)
+      throw new HttpException("User doesn't exist", HttpStatus.BAD_REQUEST);
+
+    const emailHash = await hash(user.emailAddress);
+    const url = getConfirmUrlUserResetPassword(user.emailAddress, emailHash);
+    await this.mailService.sendUserConfirmation(user, url, 'reset-password');
+
+    return {
+      status: 202,
+      message: 'An email sent to your account please verify and reset password',
+    };
+  }
+
+  async resetPassword(payload: UserResetPassword) {
+    const { emailAddress, newPassword } = payload;
+    const user = await this.userRepository.findOneBy({
+      emailAddress,
+    });
+    if (!user)
+      throw new HttpException("User doesn't exist", HttpStatus.BAD_REQUEST);
+
+    const passwordHash = await hash(newPassword);
+    await this.userRepository.update(
+      { emailAddress: emailAddress },
+      { password: passwordHash },
+    );
+
+    return { status: 202, message: 'Password reset successfully' };
+  }
+
+  async confirm(email: string, token: string) {
+    const user = await this.userRepository.findOneBy({ emailAddress: email });
+
+    if (!user)
       throw new HttpException('Verify url invalid', HttpStatus.BAD_REQUEST);
-    const isMatch = compareHash(email, token);
+    const isMatch = await compareHash(email, token);
     if (!isMatch)
       throw new HttpException('Verify url invalid', HttpStatus.BAD_REQUEST);
 
-    return 'verify success';
+    this.userRepository.update(
+      { emailAddress: email },
+      { verifyAt: new Date() },
+    );
+
+    return { status: 202, message: 'Verify signup account success' };
+  }
+
+  async confirmResetPassword(email: string, token: string) {
+    const user = await this.userRepository.findOneBy({ emailAddress: email });
+    if (!user)
+      throw new HttpException('Verify url invalid', HttpStatus.BAD_REQUEST);
+    const isMatch = await compareHash(email, token);
+    if (!isMatch)
+      throw new HttpException('Verify url invalid', HttpStatus.BAD_REQUEST);
+
+    return { status: 202, message: 'Verify reset password success' };
   }
 
   async getTokens(userId, email): Promise<Tokens> {
